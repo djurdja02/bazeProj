@@ -12,7 +12,7 @@ public class Rtree{
 	public Rtree(int M,int m) {
 		this.max=M;
 		this.min=m;
-		if(m>M/2)this.min=M/2;
+		if(m>(M/2))this.min=M/2;
 		koren=new Cvor();
 	}
 	
@@ -28,7 +28,7 @@ public class Rtree{
 	
 	private class Cvor{
 		private boolean list=true;
-		private List<Ulaz> ulazi;
+		List<Ulaz> ulazi;
 		private int brojUlaza=0;
 		private Cvor prev=null;
 		private Region mbr;
@@ -37,15 +37,12 @@ public class Rtree{
 			ulazi=new ArrayList<Ulaz>();
 		}
 		
-		public void uvecaj() {
-			brojUlaza++;
-			
-		}
+		
 		
 		public Region izracunajMBR() {
-			if(brojUlaza==0)return null;
+			if(ulazi.size()==0)return null;
 			mbr=ulazi.get(0).mbr;
-			for(int i=1;i<brojUlaza;i++) {
+			for(int i=1;i<ulazi.size();i++) {
 				mbr=mbr.unija(ulazi.get(i).mbr);
 			}
 			return mbr;
@@ -69,101 +66,101 @@ public class Rtree{
 		
 		
 	}
-	//koristimo linear split
-	public void splitInsert(Ulaz u,Cvor cvor) {		
-			List<Ulaz> ulazi=cvor.ulazi;
-			ulazi.add(u);
-			//7.korak najvece rastojanje
-			Ulaz ulazp=null,ulazd=null;
-			double distanca=0;
-			for(Ulaz ulaz1:ulazi) {
-				for(int i=ulazi.indexOf(ulaz1)+1;i<ulazi.size();i++) {
-					if(ulaz1.mbr.rastojanje(ulazi.get(i).mbr)>distanca) {
-						ulazp=ulaz1;ulazd=ulazi.get(i);
-						distanca=ulaz1.mbr.rastojanje(ulazi.get(i).mbr);
-					}
+	public void linearSplit(List<Ulaz> ulazi, Cvor novi1, Cvor novi2) {
+		double rastojanje=0;
+		Ulaz ulazp=null,ulazd=null; 
+		for(int i=0;i<ulazi.size()-1;i++) {
+			for(int j=i+1;j<ulazi.size();j++) {
+				if(ulazi.get(i).mbr.rastojanje(ulazi.get(j).mbr)>rastojanje) {
+					ulazp=ulazi.get(i);ulazd=ulazi.get(j);
+					rastojanje=ulazi.get(i).mbr.rastojanje(ulazi.get(j).mbr);
 				}
 			}
-			Cvor novi1=new Cvor();
-			novi1.ulazi.add(ulazp);
-			Cvor novi2=new Cvor();
-			if(!cvor.list) {
-				novi1.list=false;novi2.list=false;
+		}
+		novi1.ulazi.add(ulazp);
+		novi2.ulazi.add(ulazd);
+		for(int i=0;i<ulazi.size();i++) {
+			//ako je neki od ova dva nasa ulaza
+			if(ulazi.get(i).equals(ulazp) || ulazi.get(i).equals(ulazd))continue;
+			
+			//15.korak-ako ima jos k ulaza da se dodeli a jedan cvor ima m-k mesta onda se njemu dodeljuju svi ulazi
+			if((ulazi.size()-i-1)==(min-novi2.ulazi.size())) {
+				novi2.ulazi.add(ulazi.get(i));
+				continue;
 			}
-			novi1.uvecaj();
-			novi2.ulazi.add(ulazd);
-			novi2.uvecaj();
-			//8.korak dodajes ostale ulaze u neki od ova dva cvora
-			for(int i=0;i<ulazi.size();i++) {
-				//ako je neki od ova dva nasa ulaza
-				if(ulazi.get(i).equals(ulazp) || ulazi.get(i).equals(ulazd))continue;
+			if((ulazi.size()-i-1)==(min-novi1.ulazi.size())) {
+				novi1.ulazi.add(ulazi.get(i));
 				
-				//15.korak-ako ima jos k ulaza da se dodeli a jedan cvor ima m-k mesta onda se njemu dodeljuju svi ulazi
-				if((ulazi.size()-i-1)==(min-novi2.ulazi.size())) {
-					novi2.ulazi.add(ulazi.get(i));
-					novi2.uvecaj();
-					continue;
-				}
-				if((ulazi.size()-i-1)==(min-novi1.ulazi.size())) {
-					novi1.ulazi.add(ulazi.get(i));
-					novi1.uvecaj();
-					continue;
-				}
-				//ako je blizi prvom cvoru
-				if(ulazp.mbr.povecanje(ulazi.get(i).mbr)<ulazd.mbr.povecanje(ulazi.get(i).mbr)) {
-					novi1.ulazi.add(ulazi.get(i));
-					novi1.uvecaj();
-				}
-				//ako je blizi drugom cvoru
-				else if(ulazp.mbr.povecanje(ulazi.get(i).mbr)>ulazd.mbr.povecanje(ulazi.get(i).mbr)) {
-					novi2.ulazi.add(ulazi.get(i));
-					novi2.uvecaj();
-				}
-				//ako su jednaka rastojanja korak 9
-				else {
-					if(novi1.brojUlaza>novi2.brojUlaza) {
-						novi1.ulazi.add(ulazi.get(i));
-						novi1.uvecaj();
-					}
-					else {
-						novi2.ulazi.add(ulazi.get(i));
-						novi2.uvecaj();
-					}
-				}
+				continue;
 			}
-			Cvor prev=cvor.prev;
-			//nove cvorove uvezujemo u stablo
-			//stari brisemo
-			cvor.prev=null;
-			cvor.ulazi=null;
-			Ulaz ulaz1=new Ulaz(novi1.izracunajMBR(), novi1.mbr.getGl());
-			ulaz1.dete=novi1;
-			Ulaz ulaz2=new Ulaz(novi2.izracunajMBR(), novi2.mbr.getGl());
-			ulaz2.dete=novi2;
-			//ako je koren
-			if(prev==null) {
-				prev=new Cvor();
-				prev.list=false;
-				prev.ulazi.add(ulaz1);
-				prev.ulazi.add(ulaz2);
-				prev.brojUlaza+=2;
-				prev.izracunajMBR();
-				koren=prev;
-				ulaz1.dete.prev=prev;
-				ulaz2.dete.prev=prev;
+			//ako je blizi prvom cvoru
+			if(ulazp.mbr.povecanje(ulazi.get(i).mbr)<ulazd.mbr.povecanje(ulazi.get(i).mbr)) {
+				novi1.ulazi.add(ulazi.get(i));
+				
 			}
-			//else
+			//ako je blizi drugom cvoru
+			else if(ulazp.mbr.povecanje(ulazi.get(i).mbr)>ulazd.mbr.povecanje(ulazi.get(i).mbr)) {
+				novi2.ulazi.add(ulazi.get(i));
+				
+			}
+			//ako su jednaka rastojanja korak 9
 			else {
-				for(int i=0;i<prev.brojUlaza;i++) {
-					if(prev.ulazi.get(i).dete.equals(cvor)) {
-						prev.ulazi.set(i, ulaz1);
-						ulaz1.dete.prev=prev;
-						prev.list=false;
-						break;
-					};
+				if(novi1.brojUlaza>novi2.brojUlaza) {
+					novi1.ulazi.add(ulazi.get(i));
+					
 				}
-				ubaciListNadjen(ulaz2,prev);
+				else {
+					novi2.ulazi.add(ulazi.get(i));
+					
+				}
 			}
+		}
+	}
+	//koristimo linear split
+	public void splitInsert(Ulaz u,Cvor cvor) {	
+		//7.korak 
+		List<Ulaz> ulazi=new ArrayList<>();
+		for(Ulaz ulaz:cvor.ulazi) {
+			ulazi.add(ulaz);
+		}
+		ulazi.add(u);
+		Cvor novi1=new Cvor();
+		Cvor novi2=new Cvor();
+		linearSplit(ulazi, novi1, novi2);
+		if(cvor.list==false) {
+			novi1.list=false;
+			novi2.list=false;
+		}
+		if(cvor.equals(koren)) {
+			Cvor noviKoren = new Cvor();
+			Ulaz u1=new Ulaz(novi1.izracunajMBR(),novi1.mbr.getGl());
+			u1.dete=novi1;
+			Ulaz u2=new Ulaz(novi2.izracunajMBR(),novi2.mbr.getGl());
+			u2.dete=novi2;
+			novi1.prev=noviKoren;
+			novi2.prev=noviKoren;
+			noviKoren.ulazi.add(u1);
+			noviKoren.ulazi.add(u2);
+			noviKoren.list=false;
+	        koren = noviKoren;
+		}
+		else {
+			Cvor prethodni = cvor.prev;
+	        for(int i=0;i<prethodni.ulazi.size();i++) {
+	        	if(prethodni.ulazi.get(i).dete==cvor) {
+	        		prethodni.ulazi.remove(i);
+	        		break;
+	        	}
+	        }
+	        Ulaz u1=new Ulaz(novi1.izracunajMBR(),novi1.mbr.getGl());
+			u1.dete=novi1;
+			Ulaz u2=new Ulaz(novi2.izracunajMBR(),novi2.mbr.getGl());
+			u2.dete=novi2;
+			novi1.prev=prethodni;
+			prethodni.list=false;
+			ubaciListNadjen(u1, prethodni);
+			ubaciListNadjen(u2,prethodni);
+		}
 		
 	}
 	public void izracunajMBR(Cvor trenutni) {
@@ -176,11 +173,11 @@ public class Rtree{
 	}
 	public void ubaciListNadjen(Ulaz ulaz,Cvor trenutni) {
 		//korak 3: ako moze da stane
-		if(trenutni.brojUlaza<max) {
+		if(trenutni.ulazi.size()<max) {
 			//korak 4: ubacujem novi ulaz
-			trenutni.ulazi.add(trenutni.brojUlaza, ulaz);
+			trenutni.ulazi.add(ulaz);
 			if(ulaz.dete!=null) {ulaz.dete.prev=trenutni;trenutni.list=false;}
-			trenutni.uvecaj();
+			
 			//korak 5: uvecavam mbr svim prethodnicima
 			izracunajMBR(trenutni);
 		}
