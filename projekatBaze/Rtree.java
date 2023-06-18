@@ -43,7 +43,8 @@ public class Rtree{
 			if(ulazi.size()==0)return null;
 			mbr=ulazi.get(0).mbr;
 			for(int i=1;i<ulazi.size();i++) {
-				mbr=mbr.unija(ulazi.get(i).mbr);
+				if(ulazi.get(i).dete!=null)mbr=mbr.unija(ulazi.get(i).dete.izracunajMBR());
+				else mbr=mbr.unija(ulazi.get(i).mbr);
 			}
 			return mbr;
 		}
@@ -115,6 +116,14 @@ public class Rtree{
 				}
 			}
 		}
+		for(Ulaz u:novi2.ulazi) {
+			if(u.dete!=null)u.dete.prev=novi2;
+		}
+		for(Ulaz u:novi1.ulazi) {
+			if(u.dete!=null)u.dete.prev=novi1;
+		}
+		novi1.izracunajMBR();
+		novi2.izracunajMBR();
 	}
 	//koristimo linear split
 	public void splitInsert(Ulaz u,Cvor cvor) {	
