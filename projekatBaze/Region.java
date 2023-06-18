@@ -40,13 +40,15 @@ public class Region{
 	}
 	//za spajanje MBR
 	public Region unija(Region r2) {
-		Tacka gl=new Tacka(0,0);
-		Tacka dd=new Tacka(0,0);
-		gl.setX(this.gl.getX()<r2.gl.getX()?this.gl.getX(): r2.gl.getX());
-		gl.setY(this.gl.getY()>r2.gl.getY()?this.gl.getY(): r2.gl.getY());
-		dd.setX(this.dd.getX()>r2.dd.getX()?this.dd.getX():r2.dd.getX());
-		dd.setY(this.dd.getY()<r2.dd.getY()?this.dd.getY():r2.dd.getY());
-		return new Region(gl,dd);
+	    double x1 = Math.min(this.gl.getX(), r2.gl.getX());
+	    double y1 = Math.max(this.gl.getY(), r2.gl.getY());
+	    double x2 = Math.max(this.dd.getX(), r2.dd.getX());
+	    double y2 = Math.min(this.dd.getY(), r2.dd.getY());
+
+	    Tacka g = new Tacka(x1, y1);
+	    Tacka d = new Tacka(x2, y2);
+
+	    return new Region(g, d);
 	}
 	
 	public double rastojanje(Region r2) {

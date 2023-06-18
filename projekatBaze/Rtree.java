@@ -1,5 +1,9 @@
 package projekatBaze;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,6 +12,7 @@ public class Rtree{
 	private Cvor koren=null;
 	private int max;
 	private int min;
+	private int dubina=0;
 	
 	public Rtree(int M,int m) {
 		this.max=M;
@@ -29,22 +34,27 @@ public class Rtree{
 	private class Cvor{
 		private boolean list=true;
 		List<Ulaz> ulazi;
-		private int brojUlaza=0;
 		private Cvor prev=null;
 		private Region mbr;
 		
 		public Cvor() {
 			ulazi=new ArrayList<Ulaz>();
 		}
-		
-		
-		
+
 		public Region izracunajMBR() {
+			//ovo se desava samo ako je koren prazan
 			if(ulazi.size()==0)return null;
 			mbr=ulazi.get(0).mbr;
 			for(int i=1;i<ulazi.size();i++) {
-				if(ulazi.get(i).dete!=null)mbr=mbr.unija(ulazi.get(i).dete.izracunajMBR());
-				else mbr=mbr.unija(ulazi.get(i).mbr);
+				mbr=mbr.unija(ulazi.get(i).mbr);
+			}
+			if(prev!=null) {
+				for(Ulaz u:prev.ulazi) {
+					if(u.dete.equals(this)) {					
+						u.mbr=mbr;
+						break;
+					}
+				}
 			}
 			return mbr;
 		}
@@ -62,11 +72,9 @@ public class Rtree{
 			else {
 		        return new StringBuilder(mbr+"").toString();
 		    }
-		}
-		
-		
-		
+		}	
 	}
+	
 	public void linearSplit(List<Ulaz> ulazi, Cvor novi1, Cvor novi2) {
 		double rastojanje=0;
 		Ulaz ulazp=null,ulazd=null; 
@@ -106,7 +114,7 @@ public class Rtree{
 			}
 			//ako su jednaka rastojanja korak 9
 			else {
-				if(novi1.brojUlaza>novi2.brojUlaza) {
+				if(novi1.ulazi.size()>novi2.ulazi.size()) {
 					novi1.ulazi.add(ulazi.get(i));
 					
 				}
@@ -151,7 +159,9 @@ public class Rtree{
 			noviKoren.ulazi.add(u1);
 			noviKoren.ulazi.add(u2);
 			noviKoren.list=false;
+			noviKoren.izracunajMBR();
 	        koren = noviKoren;
+	        dubina++;
 		}
 		else {
 			Cvor prethodni = cvor.prev;
@@ -185,8 +195,7 @@ public class Rtree{
 		if(trenutni.ulazi.size()<max) {
 			//korak 4: ubacujem novi ulaz
 			trenutni.ulazi.add(ulaz);
-			if(ulaz.dete!=null) {ulaz.dete.prev=trenutni;trenutni.list=false;}
-			
+			if(ulaz.dete!=null) {ulaz.dete.prev=trenutni;trenutni.list=false;}		
 			//korak 5: uvecavam mbr svim prethodnicima
 			izracunajMBR(trenutni);
 		}
@@ -229,20 +238,67 @@ public class Rtree{
 		ubaciListNadjen(ulaz, trenutni);
 		
 	}
-	//TODO izmeni ispis
+	//za ispis po dubini
+	public void ispisiCvorDubina(Cvor cvor,int dubina,int i) {
+		if(dubina==i) {
+			System.out.println(cvor.toString()+ "  ");
+			return;
+		}else {
+			if(cvor.list)return;
+			else {
+				for(Ulaz ulaz: cvor.ulazi)
+				ispisiCvorDubina(ulaz.dete, dubina, i+1);
+			}
+		}
+	}
+	public void ispisPoDubini(int dubina) {
+		int i=0;
+		System.out.println("Dubina "+ dubina);
+		ispisiCvorDubina(koren,dubina,i);
+	}
+	//za ispis celog stabla stabla po dubinama
+	public void ispisiDubine() {
+		for(int i=0;i<=dubina;i++) {
+			ispisPoDubini(i);
+			System.out.println("\n");
+		}
+	}
 	//ispis celog stabla
 	public void ispis() {
 		String str="";
 		Cvor trenutni=koren;
-		ispisCvora(trenutni, str);	
+		ispisCvora(trenutni, str,true);	
 	}
-	public void ispisCvora(Cvor trenutni,String str) {
-		System.out.println(str + "└── " + trenutni.toString());
-		 if(!trenutni.list) {
-			 str+="    ";
-			 for(Ulaz u: trenutni.ulazi) {
-				 ispisCvora(u.dete, str);
+	public void ispisCvora(Cvor trenutni,String str,boolean isLast) {
+		System.out.print(str);
+	    System.out.print(isLast ? "|__ " : "|--");
+	    System.out.println(trenutni.toString());
+		
+		if(!trenutni.list) {
+			int index=trenutni.ulazi.size()-1;
+			for (int i = 0; i < index; i++) {
+				 ispisCvora(trenutni.ulazi.get(i).dete, str+(isLast ? "    " : "|   "), false);
+			 }
+			 if(index>=0) {
+				ispisCvora(trenutni.ulazi.get(index).dete,str+ (isLast? "    " : "|   "), true);
 			 }
 		 }
+		
 	}
+	//ucitavanje iz datoteke
+	public void ucitajDatoteku(String ime) {
+		try(BufferedReader br=new BufferedReader(new FileReader(ime))){
+			String line=null;
+			while((line=br.readLine())!=null) {
+				String[] tacka=line.split(",");
+				double x = Double.parseDouble(tacka[0].trim());
+                double y = Double.parseDouble(tacka[1].trim());
+                Tacka t = new Tacka(x, y);
+                dodaj(t);
+			}
+		} catch (Exception e) {
+			System.out.println("Nije moguce citanje iz datoteke!");
+		}
+	}
+	
 }
