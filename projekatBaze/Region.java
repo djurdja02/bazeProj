@@ -1,5 +1,6 @@
 package projekatBaze;
 
+import java.text.DecimalFormat;
 
 public class Region{
 	private Tacka gl;
@@ -9,8 +10,17 @@ public class Region{
 	
 	@Override
     public String toString() {
-        return new StringBuilder("MBR: (" + gl + "), (" + dd + ")"+ "P"+povrsina()).toString();
+		DecimalFormat format=new DecimalFormat("#.##");
+		String x1=format.format(povrsina());
+        return new StringBuilder("MBR: (" + gl + "), (" + dd + ")"+ "P"+x1).toString();
     }
+	public boolean sadrzi(Region r2){
+		//za pretragu 
+		if (gl.getX() <= r2.gl.getX() && gl.getY() >= r2.gl.getY() && dd.getX() >= r2.dd.getX() && dd.getY() <= r2.dd.getY()) {
+	        return true;
+	    }
+		return false;
+	}
 	
 	public Region(Tacka g,Tacka d){
 		gl=g;

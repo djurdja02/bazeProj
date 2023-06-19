@@ -1,9 +1,7 @@
 package projekatBaze;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +33,7 @@ public class Rtree{
 		private boolean list=true;
 		List<Ulaz> ulazi;
 		private Cvor prev=null;
-		private Region mbr;
+		private Region mbr=null;
 		
 		public Cvor() {
 			ulazi=new ArrayList<Ulaz>();
@@ -112,7 +110,16 @@ public class Rtree{
 				novi2.ulazi.add(ulazi.get(i));
 				
 			}
-			//ako su jednaka rastojanja korak 9
+			//ako su jednaka rastojanja korak 9 gledamo povrsine
+			else if(novi1.izracunajMBR().povrsina()<novi2.izracunajMBR().povrsina()) {
+				novi1.ulazi.add(ulazi.get(i));
+			}
+			
+			else if(novi2.izracunajMBR().povrsina()<novi1.izracunajMBR().povrsina()) {
+				novi2.ulazi.add(ulazi.get(i));
+			}
+			
+			//ako su rastojanja i povrsine iste
 			else {
 				if(novi1.ulazi.size()>novi2.ulazi.size()) {
 					novi1.ulazi.add(ulazi.get(i));
@@ -258,6 +265,7 @@ public class Rtree{
 	}
 	//za ispis celog stabla stabla po dubinama
 	public void ispisiDubine() {
+		if(koren==null || koren.mbr==null)return;
 		for(int i=0;i<=dubina;i++) {
 			ispisPoDubini(i);
 			System.out.println("\n");
@@ -265,6 +273,7 @@ public class Rtree{
 	}
 	//ispis celog stabla
 	public void ispis() {
+		if(koren==null || koren.mbr==null)return;
 		String str="";
 		Cvor trenutni=koren;
 		ispisCvora(trenutni, str,true);	
@@ -285,16 +294,47 @@ public class Rtree{
 		 }
 		
 	}
+
+	
+	public void pretrazi(Cvor cvor, Region r, List<Tacka> t) {
+		//ako je list proveravamo tacke da li se uklapaju 
+		if(cvor.list) {
+			for(Ulaz ulaz:cvor.ulazi) {
+				if(r.sadrzi(ulaz.mbr))t.add(ulaz.t);
+			}
+		}
+	    //ako nije list gledamo da li ima presek ili da li sadrzi region
+		else {
+			for(Ulaz ulaz:cvor.ulazi) {
+				if(ulaz.mbr.presek(r) || ulaz.mbr.sadrzi(r) || r.sadrzi(ulaz.mbr)) {
+					pretrazi(ulaz.dete,r,t);
+				}
+			}
+		}
+	}
+
+	// pretrazivanje tacaka po regionu
+	public void pretrazivanje(Region region) {
+	    if (koren == null || koren.mbr == null) return;
+	    List<Tacka> tacke = new ArrayList<>();
+	    pretrazi(koren, region, tacke);
+	    for (Tacka t : tacke) {
+	        System.out.println(t + "  ");
+	    }
+	}
+
 	//ucitavanje iz datoteke
 	public void ucitajDatoteku(String ime) {
 		try(BufferedReader br=new BufferedReader(new FileReader(ime))){
 			String line=null;
 			while((line=br.readLine())!=null) {
 				String[] tacka=line.split(",");
+				if(tacka.length==2) {
 				double x = Double.parseDouble(tacka[0].trim());
                 double y = Double.parseDouble(tacka[1].trim());
                 Tacka t = new Tacka(x, y);
                 dodaj(t);
+				}
 			}
 		} catch (Exception e) {
 			System.out.println("Nije moguce citanje iz datoteke!");

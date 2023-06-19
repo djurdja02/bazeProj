@@ -1,5 +1,7 @@
 package projekatBaze;
 
+import java.text.DecimalFormat;
+
 public class Tacka {
 
 	private double x;
@@ -22,6 +24,9 @@ public class Tacka {
 	}
 	@Override
     public String toString() {
-        return "(" + x + ", " + y + ")";
+		DecimalFormat format=new DecimalFormat("#.##");
+		String x1=format.format(x);
+		String y1=format.format(y);
+        return "(" + x1 + ", " + y1 + ")";
     }
 }
